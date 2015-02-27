@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+<meta charset="utf-8">
+<title></title>
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp?key=AIzaSyATOeIWtFljg6nsAkZ5OatrAGZCqft4NfU"></script>
+<script>
+    var map;
+    var directionsDisplay;
+    var directionsService;
+    var stepDisplay = [];
+    var markerArray = [];
+    var secondStepDisplay = new google.maps.InfoWindow();
+    function initialize() {
+        directionsService = new google.maps.DirectionsService();
+        var manhattan = new google.maps.LatLng(40.7711329, -73.9741874);
+        var mapOptions = {
+            zoom: 10,
+            center: manhattan
+        }
+        map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+        var rendererOptions = {
+            map: map,
+            suppressMarkers : true,
+            suppressInfoWindows: true
+        }
+        directionsDisplay = new google.maps.DirectionsRenderer(rendererOptions)
+        for (var i = 0; i < markerArray.length; i++) {
+            markerArray[i].setMap(null);
+        }
+        for (var i = 0; i < stepDisplay.length; i++) {
+            stepDisplay[i]=null;
+        }
+        markerArray = [];
+        stepDisplay = [];
+        secondStepDisplay = null;
+    }
+
+    function calcRoute() {
+        for (var i = 0; i < markerArray.length; i++) {
+            markerArray[i].setMap(null);
+        }
+        for (var i = 0; i < stepDisplay.length; i++) {
+            stepDisplay[i]=null;
+        }
+        markerArray = [];
+        stepDisplay = [];
+        var start = document.getElementById('start').value;
+        var end = document.getElementById('end').value;
+        var request = {
+            origin: start,
+            destination: end,
+            travelMode: google.maps.TravelMode.WALKING
+        };
+        directionsService.route(request, function(response, status) {
+            if (status == google.maps.DirectionsStatus.OK) {
+                var warnings = document.getElementById('warnings_panel');
+                warnings.innerHTML = '<b>' + response.routes[0].warnings + '</b>';
+                directionsDisplay.setDirections(response);
+                showSteps(response);
+            }
+        });
+    }
+
+    function showSteps(directionResult) {
+        for(var i =0;i<directionResult.routes[0].legs[0].steps.length;i++)
+        {
+            secondStepDisplay = new google.maps.InfoWindow();
+            if(i==0 || i==directionResult.routes[0].legs[0].steps.length-1)
+            {
+                if(i==0)
+                {
+                    infoWindowText="Address<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].start_address + '<br><br>';
+                    infoWindowText+="Kilometers<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].distance.value/1000 + '<br><br>';
+                    infoWindowText+="Minutes<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].duration.text + '<br><br>';
+                    var marker = new google.maps.Marker({
+                        position: directionResult.routes[0].legs[0].steps[0].start_point,
+                        map: map
+                    });
+                }
+                else if(i==directionResult.routes[0].legs[0].steps.length-1)
+                {
+                    infoWindowText="Address<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].end_address + '<br><br>';
+                    infoWindowText+="Kilometers<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].distance.value/1000 + '<br><br>';
+                    infoWindowText+="Minutes<br/><br/>"
+                    infoWindowText += directionResult.routes[0].legs[0].duration.text + '<br><br>';
+                    var marker = new google.maps.Marker({
+                        position: directionResult.routes[0].legs[0].steps[directionResult.routes[0].legs[0].steps.length-1].end_point,
+                        map: map
+                    });
+                }
+            }
+            stepDisplay.push(secondStepDisplay);
+            attachInstructionText(marker, infoWindowText,i);
+            markerArray.push(marker);
+        }
+    }
+    function attachInstructionText(marker, text,j) {
+        google.maps.event.addListener(marker, 'click', function() {
+            stepDisplay[j].setContent(text);
+            stepDisplay[j].open(map, marker);
+        });
+    }
+    google.maps.event.addDomListener(window, 'load', initialize);
+
+</script>
+</head>
+<body>
+<div id="panel">
+  <b>Start: </b>
+  <input type="text" id="start" value="Harvard Yenching Library, 2 Divinity Avenue, Cambridge, MA 02138, United States"/>
+
+  <b>End: </b>
+  <input type="text" id="end" value="Harvard University, Cambridge, MA 02138, United States"/>
+  <input type="button" value="find" onclick="calcRoute();"/>
+
+</div>
+<div id="map-canvas"></div>
+<div id="warnings_panel"></div>
+</body>
+</html>
+
